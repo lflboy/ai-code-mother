@@ -1,0 +1,109 @@
+--- #腾讯云存储配置
+cos:
+  client:
+    host: https://xx.cn
+    secret-id: secretId
+    secret-key: secretKey
+    region: ap-xxx
+    bucket: xxx-bucket
+    endpoint: xxx.com
+    thread-pool: 8
+
+--- #数据源配置
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/ai_code_mother?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
+    username: root
+    password: root
+
+--- # redis配置
+spring:
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 10000
+      password:
+      database: 3
+      lettuce:
+        pool:
+          # 连接池最大连接数
+          max-active: 200
+          # 连接池最大阻塞等待时间（使用负值表示没有限制）
+          max-wait: -1ms
+          # 连接池中的最大空闲连接
+          max-idle: 10
+          # 连接池中的最小空闲连接
+          min-idle: 0
+
+--- #消息队列配置
+spring:
+  rabbitmq:
+    host: localhost
+    username: root
+    password: root
+    port: 5672
+    listener:
+      simple:
+        retry:
+          enabled: true
+          max-attempts: 3
+          multiplier: 2
+          initial-interval: 2000
+        default-requeue-rejected: false
+--- #邮箱配置
+spring:
+  mail:
+    host: smtp.163.com
+    port: 465
+    protocol: smtps
+    username: xxx@163.com
+    password: ${SMTP_PASSWORD:xxx}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+    default-encoding: UTF-8
+
+--- #langChain4j配置
+langchain4j:
+      # 自定义多例模式（流处理） 兼容openai 接口
+  prototype-streaming-chat-model:
+    api-key: api-key
+    base-url: base-url
+    model-name: 模型名称
+    log-requests: false # 请求日志
+    log-responses: false #响应日志
+    max-tokens: 65535 # 最大上下文
+    temperature: 0.5
+    # 自定义多例模式（普通模式）
+  prototype-chat-model:
+    api-key: api-key
+    base-url: base-url
+    model-name: 模型名称
+    log-requests: false # 请求日志
+    log-responses: false #响应日志
+    max-tokens: 8192 # 最大上下文
+    temperature: 0.5
+    max-retries: 3 # 重试次数
+--- #阿里灵积模型配置
+dashscope:
+  api-key: DASHSCOPE_API_KEY
+  image-model: wan2.2-t2i-flash
+--- # 监控
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+--- #部署应用的域名
+deploy:
+  code_deploy_host: http://localhost:8123
