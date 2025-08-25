@@ -1,11 +1,17 @@
 package cn.longwingstech.intelligence.longaicodemother.service.impl;
 
+import cn.hutool.core.collection.CollUtil;
+import cn.longwingstech.intelligence.longaicodemother.model.entity.ChatHistory;
+import cn.longwingstech.intelligence.longaicodemother.model.enums.ChatHistoryMessageTypeEnum;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import cn.longwingstech.intelligence.longaicodemother.model.entity.ChatMessage;
 import cn.longwingstech.intelligence.longaicodemother.mapper.ChatMessageMapper;
 import cn.longwingstech.intelligence.longaicodemother.service.ChatMessageService;
+import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessageDeserializer;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 
@@ -46,4 +52,6 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
         List<ChatMessage> list = super.list(queryWrapper);
         return list.stream().map(ChatMessage::getMessage).toList();
     }
+
+
 }

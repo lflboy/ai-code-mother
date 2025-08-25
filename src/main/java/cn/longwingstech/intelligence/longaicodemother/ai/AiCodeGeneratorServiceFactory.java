@@ -6,9 +6,12 @@ import cn.longwingstech.intelligence.longaicodemother.ai.memory.RedisChatMemoryS
 import cn.longwingstech.intelligence.longaicodemother.ai.tools.FileWriteTool;
 import cn.longwingstech.intelligence.longaicodemother.ai.tools.ToolManager;
 import cn.longwingstech.intelligence.longaicodemother.model.enums.CodeGenTypeEnum;
+import cn.longwingstech.intelligence.longaicodemother.service.ChatMessageService;
 import cn.longwingstech.intelligence.longaicodemother.utils.SpringContextUtil;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.ChatMessageDeserializer;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.memory.chat.ChatMemoryProvider;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
@@ -25,6 +28,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.util.List;
 
 @Component
 @Slf4j
@@ -33,6 +37,8 @@ public class AiCodeGeneratorServiceFactory {
     private RedisChatMemoryStore redisChatMemoryStore;
     @Resource
     private ToolManager toolManager;
+    @Resource
+    private ChatMessageService chatMessageService;
     /**
      * AI 服务实例缓存
      * 缓存策略：
@@ -70,6 +76,15 @@ public class AiCodeGeneratorServiceFactory {
                     .maxMessages(50)
                     .chatMemoryStore(redisChatMemoryStore)
                     .build();
+            // 加载历史消息
+            {
+                messageWindowChatMemory.clear();
+                List<String> list = chatMessageService.loadHistory(Long.parseLong(appid), 50);
+                if (!list.isEmpty()) {
+                    List<ChatMessage> messages = list.stream().map(ChatMessageDeserializer::messageFromJson).toList().reversed();
+                    messageWindowChatMemory.add(messages);
+                }
+            }
             return switch (codeGenType) {
                 case VUE_PROJECT -> AiServices.builder(AiCodeGeneratorService.class)
                         .streamingChatModel(prototypeStreamingChatModel)
@@ -101,6 +116,7 @@ public class AiCodeGeneratorServiceFactory {
 
     /**
      * 获取标题生成ai实例
+     *
      * @return
      */
     public TitleGeneratorService titleGeneratorService() {
@@ -113,7 +129,6 @@ public class AiCodeGeneratorServiceFactory {
     }
 
     /**
-     *
      * @param appid
      * @param codeGenType
      * @return

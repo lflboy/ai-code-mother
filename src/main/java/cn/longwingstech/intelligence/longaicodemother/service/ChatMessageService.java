@@ -1,7 +1,10 @@
 package cn.longwingstech.intelligence.longaicodemother.service;
 
+import cn.longwingstech.intelligence.longaicodemother.model.entity.ChatHistory;
+import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
 import cn.longwingstech.intelligence.longaicodemother.model.entity.ChatMessage;
+import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -20,4 +23,5 @@ public Long saveChatMessage(Long appId, String message, LocalDateTime createDate
      * @return
      */
     public List<String> loadHistory(Long appid,int limit);
+
 }

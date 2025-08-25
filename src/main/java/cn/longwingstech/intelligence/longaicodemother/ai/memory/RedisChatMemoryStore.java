@@ -76,12 +76,13 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
         String json = stringRedisTemplate.opsForValue().get(REDIS_KEY_PREFIX + o.toString());
         if (json != null) {
             return ChatMessageDeserializer.messagesFromJson(json);
-        } else {
-            List<String> list = chatMessageService.loadHistory(Long.parseLong(o.toString()), 50);
-            if (!list.isEmpty()) {
-                return list.stream().map(ChatMessageDeserializer::messageFromJson).toList().reversed();
-            }
         }
+//        else {
+//            List<String> list = chatMessageService.loadHistory(Long.parseLong(o.toString()), 50);
+//            if (!list.isEmpty()) {
+//                return list.stream().map(ChatMessageDeserializer::messageFromJson).toList().reversed();
+//            }
+//        }
         return List.of();
     }
 
