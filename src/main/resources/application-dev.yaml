@@ -94,6 +94,16 @@ langchain4j:
 dashscope:
   api-key: DASHSCOPE_API_KEY
   image-model: wan2.2-t2i-flash
+  image:
+    enabled: false # 这个和下面的openai生图 只能选择一个为true
+--- #openai接口生图
+openai:
+  image:
+    base-url: https://api.siliconflow.cn/v1
+    api-key: 硅基流动API-key
+    image-size: 512x512
+    image-model: Kwai-Kolors/Kolors
+    enabled: false # 这个和上面的阿里灵积模型配置 只能选择一个为true
 --- # 监控
 management:
   endpoints:

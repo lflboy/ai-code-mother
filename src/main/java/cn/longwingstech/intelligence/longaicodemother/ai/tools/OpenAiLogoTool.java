@@ -1,12 +1,11 @@
 package cn.longwingstech.intelligence.longaicodemother.ai.tools;
 
 import cn.hutool.core.io.FileUtil;
-import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.http.HttpUtil;
 import cn.hutool.json.JSONObject;
-import cn.longwingstech.intelligence.longaicodemother.common.constant.FileConstants;
+import cn.longwingstech.intelligence.longaicodemother.config.OpenAIImageConfigProperties;
 import cn.longwingstech.intelligence.longaicodemother.langgraph4j.model.ImageResource;
 import cn.longwingstech.intelligence.longaicodemother.langgraph4j.model.enums.ImageCategoryEnum;
 import cn.longwingstech.intelligence.longaicodemother.manager.CosManager;
@@ -15,9 +14,14 @@ import com.alibaba.dashscope.aigc.imagesynthesis.ImageSynthesisParam;
 import com.alibaba.dashscope.aigc.imagesynthesis.ImageSynthesisResult;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
+import dev.langchain4j.data.image.Image;
+import dev.langchain4j.model.image.ImageModel;
+import dev.langchain4j.model.openai.OpenAiImageModel;
+import dev.langchain4j.model.output.Response;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.stereotype.Component;
 
@@ -25,18 +29,18 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+/**
+ * 使用OpenAPI规范的生图
+ */
 @Slf4j
 @Component
-@ConditionalOnBooleanProperty(prefix = "dashscope.image", name = "enabled", havingValue = true)
-public class LogoTool extends BaseTool{
-    @Value("${dashscope.api-key:}")
-    private String dashScopeApiKey;
-
-    @Value("${dashscope.image-model:wan2.2-t2i-flash}")
-    private String imageModel;
-
+@ConditionalOnBean(OpenAIImageConfigProperties.class)
+public class OpenAiLogoTool extends BaseTool {
     @Resource
     private CosManager cosManager;
+    @Resource
+    private OpenAIImageConfigProperties openAiImageConfigProperties;
 
     @Tool("根据描述生成 Logo 设计图片，用于网站品牌标识")
     public List<ImageResource> generateLogos(@P("Logo 设计描述，如名称、行业、风格等，尽量详细") String description) {
@@ -44,28 +48,20 @@ public class LogoTool extends BaseTool{
         try {
             // 构建 Logo 设计提示词
             String logoPrompt = String.format("生成 Logo，Logo 中禁止包含任何文字！Logo 介绍：%s", description);
-            ImageSynthesisParam param = ImageSynthesisParam.builder()
-                    .apiKey(dashScopeApiKey)
-                    .model(imageModel)
-                    .prompt(logoPrompt)
-                    .size("512*512")
-                    .n(1) // 生成 1 张足够，因为 AI 不知道哪张最好
+            ImageModel imageModel = OpenAiImageModel.builder()
+                    .modelName(openAiImageConfigProperties.getImageModel())
+                    .baseUrl(openAiImageConfigProperties.getBaseUrl())
+                    .apiKey(openAiImageConfigProperties.getApiKey())
+                    .size(openAiImageConfigProperties.getImageSize())
                     .build();
-            ImageSynthesis imageSynthesis = new ImageSynthesis();
-            ImageSynthesisResult result = imageSynthesis.call(param);
-            if (result != null && result.getOutput() != null && result.getOutput().getResults() != null) {
-                List<Map<String, String>> results = result.getOutput().getResults();
-                for (Map<String, String> imageResult : results) {
-                    String imageUrl = imageResult.get("url");
-                    if (StrUtil.isNotBlank(imageUrl)) {
-                        logoList.add(ImageResource.builder()
-                                .category(ImageCategoryEnum.LOGO)
-                                .description(description)
-                                .url(imageUrl)
-                                .build());
-                    }
-                }
-            }
+            Response<Image> response = imageModel.generate(logoPrompt);
+            String imageUrl = response.content().url().toString();
+            logoList.add(ImageResource.builder()
+                    .category(ImageCategoryEnum.LOGO)
+                    .description(description)
+                    .url(imageUrl)
+                    .build());
+
         } catch (Exception e) {
             log.error("生成 Logo 失败: {}", e.getMessage(), e);
         }
@@ -75,7 +71,7 @@ public class LogoTool extends BaseTool{
         // 创建临时保存目录
         String name = RandomUtil.randomString(16) + ".png";
         String fileName = "gen" + File.separatorChar + "logo" + File.separatorChar + name;
-        String tempDir = System.getProperty("user.dir") + File.separatorChar + "tmp" +File.separatorChar+ fileName;
+        String tempDir = System.getProperty("user.dir") + File.separatorChar + "tmp" + File.separatorChar + fileName;
         try {
             FileUtil.mkdir(System.getProperty("user.dir") + File.separatorChar + "tmp");
             long result = HttpUtil.downloadFile(url, new File(tempDir));
@@ -83,7 +79,7 @@ public class LogoTool extends BaseTool{
                 log.info("下载图片成功: {}", tempDir);
                 // 上传图片到cos
                 log.info("上传图片到cos: {}", tempDir);
-                String key = "gen/logo/"+name;
+                String key = "gen/logo/" + name;
                 String decUrl = cosManager.uploadFile(key, new File(tempDir));
                 log.info("上传图片到cos成功: {}", decUrl);
                 logoList.getLast().setUrl(decUrl);
